@@ -68,6 +68,7 @@ module GoogleAnalytics::Rails
     # @option options [Boolean] :enhanced_link_attribution
     #   See separate information for multiple links on a page that all have the same destination,
     #   see {https://support.google.com/analytics/answer/2558867}.
+    # @option options [Array, GoogleAnalytics::Events::SetCustomVar] :custom_var_events ([])
     #
     # @example Set the local bit in development mode
     #   analytics_init :local => Rails.env.development?
@@ -85,6 +86,8 @@ module GoogleAnalytics::Rails
 
       local = options.delete(:local) || false
       anonymize = options.delete(:anonymize) || false
+      custom_var_events = options.delete(:custom_var_events) || []
+      custom_var_events = [custom_var_events] unless custom_var_events.is_a?(Array)
       link_attribution = options.delete(:enhanced_link_attribution) || false
       domain = options.delete(:domain) || (local ? "none" : "auto")
       events = options.delete(:add_events) || []
@@ -96,6 +99,12 @@ module GoogleAnalytics::Rails
       events.unshift GA::Events::TrackPageview.new(options[:page])
       # anonymize if needed before tracking the page view
       events.unshift GA::Events::AnonymizeIp.new if anonymize
+      # custom_var if needed before tracking the page view
+      if custom_var_events
+        custom_var_events.each do |event|
+          events.unshift event
+        end
+      end
       events.unshift GA::Events::SetDomainName.new(domain)
       if local
         events.unshift GA::Events::SetAllowLinker.new(true)
